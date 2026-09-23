@@ -184,6 +184,57 @@
     .pair-num.paired{border-color:var(--green);background:var(--green-soft);color:#166534}
     .pair-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible}
 
+    /* 각 학생이 독립적으로 사용하는 숫자 키패드 */
+    .keypad-wrap{
+      width:min(100%,240px);
+      margin:4px auto 2px;
+      padding:7px;
+      border:2px solid #dbe3ee;
+      border-radius:15px;
+      background:#f8fafc;
+    }
+    .keypad-title{
+      text-align:center;
+      color:#475467;
+      font-size:11px;
+      font-weight:1000;
+      margin-bottom:5px;
+    }
+    .number-keypad{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:5px;
+    }
+    .key-btn{
+      min-width:0;
+      min-height:44px;
+      border:2px solid #cbd5e1;
+      border-radius:11px;
+      background:#fff;
+      color:#172033;
+      font-size:21px;
+      font-weight:1000;
+      cursor:pointer;
+      box-shadow:0 2px 0 #cbd5e1;
+      touch-action:manipulation;
+      user-select:none;
+    }
+    .key-btn:active{
+      transform:translateY(1px);
+      box-shadow:none;
+      background:#eef2ff;
+    }
+    .key-btn.utility{
+      font-size:14px;
+      color:#475467;
+      background:#f1f5f9;
+    }
+    .key-btn.backspace{font-size:22px}
+    .keypad-active{
+      border-color:var(--blue)!important;
+      box-shadow:0 0 0 4px rgba(37,99,235,.14)!important;
+    }
+
     .action-row{min-height:48px;display:flex;justify-content:center;align-items:center;margin-top:auto;padding-top:4px}
     .action-btn{border:0;border-radius:12px;padding:10px 14px;background:var(--blue);color:#fff;font-size:14px;font-weight:1000;cursor:pointer;box-shadow:0 4px 0 #1d4ed8;min-width:112px}
     .action-btn:active{transform:translateY(2px);box-shadow:none}
@@ -213,6 +264,10 @@
     .game-board[data-count="5"] .split-input,
     .game-board[data-count="5"] .split-value{width:52px;height:52px;font-size:26px}
     .game-board[data-count="5"] .split-row{gap:20px}
+    .game-board[data-count="4"] .keypad-wrap,
+    .game-board[data-count="5"] .keypad-wrap{width:min(100%,190px);padding:5px}
+    .game-board[data-count="5"] .key-btn{min-height:38px;font-size:18px}
+    .game-board[data-count="5"] .key-btn.utility{font-size:12px}
 
     @media (max-width:1200px){
       .game-board[data-count="4"],.game-board[data-count="5"]{
@@ -254,6 +309,9 @@
       .answer-input{width:62px;height:60px;font-size:32px}
       .split-input,.split-value{width:60px;height:60px;font-size:30px}
       .split-row{margin-top:30px}
+      .keypad-wrap{width:min(100%,260px);padding:7px}
+      .key-btn{min-height:48px;font-size:23px}
+      .key-btn.utility{font-size:14px}
     }
   </style>
 </head>
@@ -363,6 +421,7 @@
           this.q=null;
           this.selected=[];
           this.timers=[];
+          this.activeInput=null;
           this.panel=this.buildPanel();
           this.newQuestion();
         }
@@ -382,14 +441,92 @@
               <div class="instruction" data-role="instruction"></div>
               <div class="subhint" data-role="subhint"></div>
               <div class="work-area" data-role="work"></div>
+              <div class="keypad-wrap hidden" data-role="keypad" aria-label="숫자 키패드">
+                <div class="keypad-title">숫자 키패드</div>
+                <div class="number-keypad">
+                  <button type="button" class="key-btn" data-key="1">1</button>
+                  <button type="button" class="key-btn" data-key="2">2</button>
+                  <button type="button" class="key-btn" data-key="3">3</button>
+                  <button type="button" class="key-btn" data-key="4">4</button>
+                  <button type="button" class="key-btn" data-key="5">5</button>
+                  <button type="button" class="key-btn" data-key="6">6</button>
+                  <button type="button" class="key-btn" data-key="7">7</button>
+                  <button type="button" class="key-btn" data-key="8">8</button>
+                  <button type="button" class="key-btn" data-key="9">9</button>
+                  <button type="button" class="key-btn utility" data-key="clear">지우기</button>
+                  <button type="button" class="key-btn" data-key="0">0</button>
+                  <button type="button" class="key-btn utility backspace" data-key="back" aria-label="한 글자 지우기">←</button>
+                </div>
+              </div>
               <div class="action-row" data-role="actions"></div>
               <div class="message" data-role="message" aria-live="polite"></div>
             </div>`;
           $('gameBoard').appendChild(panel);
+          panel.querySelectorAll('[data-key]').forEach(btn=>{
+            btn.addEventListener('click',()=>this.handleKey(btn.dataset.key));
+          });
           return panel;
         }
 
         el(role){return this.panel.querySelector(`[data-role="${role}"]`)}
+
+        bindNumericInput(input,maxLen=2){
+          if(!input)return;
+          input.readOnly=true;
+          input.setAttribute('inputmode','none');
+          input.dataset.maxlen=String(maxLen);
+          input.addEventListener('click',()=>this.setActiveInput(input));
+          input.addEventListener('focus',()=>this.setActiveInput(input));
+          input.addEventListener('keydown',e=>{
+            if(/^\d$/.test(e.key)){
+              e.preventDefault();
+              this.handleKey(e.key);
+            }else if(e.key==='Backspace'){
+              e.preventDefault();
+              this.handleKey('back');
+            }else if(e.key==='Delete'){
+              e.preventDefault();
+              this.handleKey('clear');
+            }
+          });
+        }
+
+        setActiveInput(input){
+          if(this.activeInput && this.activeInput.isConnected){
+            this.activeInput.classList.remove('keypad-active');
+          }
+          if(!input || !input.isConnected || input.disabled){
+            this.activeInput=null;
+            const keypad=this.el('keypad');
+            if(keypad)keypad.classList.add('hidden');
+            return;
+          }
+          this.activeInput=input;
+          input.classList.add('keypad-active');
+          const keypad=this.el('keypad');
+          if(keypad)keypad.classList.remove('hidden');
+        }
+
+        handleKey(key){
+          if(this.locked || !this.activeInput || !this.activeInput.isConnected || this.activeInput.disabled)return;
+          const input=this.activeInput;
+          const maxLen=Math.max(1,Number(input.dataset.maxlen)||2);
+          if(key==='clear'){
+            input.value='';
+          }else if(key==='back'){
+            input.value=input.value.slice(0,-1);
+          }else if(/^\d$/.test(key)){
+            if(input.value.length>=maxLen)input.value='';
+            input.value=(input.value+key).slice(0,maxLen);
+          }
+          input.classList.remove('bad');
+
+          /* 가르기 칸은 한 자리이므로 첫 칸 입력 뒤 두 번째 칸으로 자동 이동 */
+          if(input.dataset.role==='splitA' && input.value.length>=1){
+            const next=this.el('work').querySelector('[data-role="splitB"]');
+            if(next && !next.classList.contains('hidden'))this.setActiveInput(next);
+          }
+        }
 
         setMessage(text='',type=''){
           const m=this.el('message');
@@ -410,6 +547,7 @@
           this.locked=false;
           this.phase='start';
           this.selected=[];
+          this.setActiveInput(null);
           this.panel.classList.remove('done');
           this.updateProgress();
           this.setMessage('');
@@ -426,7 +564,7 @@
           this.q={first,complement,second,rest,answer:first+second};
 
           this.el('instruction').innerHTML=`문제 ${this.solved+1} · <strong>${first} + ${second}</strong>`;
-          this.el('subhint').textContent='두 번째 수를 가르되, 원래 식의 자리는 그대로 두어요.';
+          this.el('subhint').textContent='아래 숫자 키패드로 입력해요. 원래 식의 자리는 그대로 두어요.';
           this.el('work').innerHTML=`
             <div class="carry-work" data-role="carryWork">
               <div class="fixed-equation" data-role="carryEq">
@@ -460,11 +598,16 @@
           const work=this.el('work');
           const a=work.querySelector('[data-role="splitA"]');
           const b=work.querySelector('[data-role="splitB"]');
-          work.querySelector('[data-role="finalAnswer"]').addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
+          const finalAnswer=work.querySelector('[data-role="finalAnswer"]');
+          this.bindNumericInput(a,1);
+          this.bindNumericInput(b,1);
+          this.bindNumericInput(finalAnswer,2);
+          finalAnswer.addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
           this.el('actions').querySelector('[data-role="checkSplit"]').addEventListener('click',()=>this.checkSplit());
           a.addEventListener('keydown',e=>{if(e.key==='Enter')b.focus()});
           b.addEventListener('keydown',e=>{if(e.key==='Enter')this.checkSplit()});
           requestAnimationFrame(()=>this.drawCarryGuide());
+          this.setActiveInput(a);
         }
 
         drawCarryGuide(){
@@ -564,7 +707,7 @@
           this.setMessage(`${this.q.second}는 흔적만 남기고, ${this.q.complement}와 ${this.q.rest}(으)로 갈랐어요. ${this.q.first}와 ${this.q.complement}가 10의 짝꿍이에요.`, 'good');
           this.locked=false;
           requestAnimationFrame(()=>this.drawCarryGuide());
-          this.later(()=>answer.focus(),80);
+          this.setActiveInput(answer);
         }
 
         /* ---------- 세 수에서 10 만들기 ---------- */
@@ -577,7 +720,7 @@
           this.q={values,answer:values.reduce((s,v)=>s+v,0)};
 
           this.el('instruction').innerHTML=`문제 ${this.solved+1} · <strong>10이 되는 두 수를 찾으세요.</strong>`;
-          this.el('subhint').textContent='숫자의 자리는 바꾸지 않고, 10이 되는 두 수만 표시해요.';
+          this.el('subhint').textContent='10이 되는 두 수를 고른 뒤, 숫자 키패드로 답을 입력해요.';
 
           const parts=[];
           values.forEach((v,i)=>{
@@ -595,8 +738,10 @@
           this.el('actions').innerHTML='';
 
           const work=this.el('work');
+          const finalAnswer=work.querySelector('[data-role="finalAnswer"]');
+          this.bindNumericInput(finalAnswer,2);
           work.querySelectorAll('[data-role="pairNum"]').forEach(btn=>btn.addEventListener('click',()=>this.pickPair(Number(btn.dataset.i),btn)));
-          work.querySelector('[data-role="finalAnswer"]').addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
+          finalAnswer.addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
         }
 
         pickPair(i,btn){
@@ -630,7 +775,7 @@
               this.setMessage('좋아요! 원래 식은 그대로 두고, 10이 되는 두 수만 표시했어요.','good');
               this.locked=false;
               requestAnimationFrame(()=>this.drawPairBracket());
-              this.later(()=>answer.focus(),80);
+              this.setActiveInput(answer);
             }else{
               this.failAndRestart('10이 되지 않아요. 처음 문제부터 다시 시작해요.');
             }
@@ -674,6 +819,7 @@
           }
           if(Number(raw)===this.q.answer){
             this.locked=true;
+            this.setActiveInput(null);
             ans.classList.add('good');
             soundGood();
             this.solved++;
@@ -694,6 +840,7 @@
           if(this.phase==='failed')return;
           this.phase='failed';
           this.locked=true;
+          this.setActiveInput(null);
           soundBad();
           this.panel.classList.add('fail-flash');
           this.setMessage(text,'bad');
@@ -709,6 +856,7 @@
         finish(){
           this.clearTimers();
           this.locked=true;
+          this.setActiveInput(null);
           this.phase='done';
           this.panel.classList.add('done');
           this.el('instruction').textContent='목표 달성!';
