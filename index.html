@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -11,7 +12,6 @@
       --card:#ffffff;
       --text:#172033;
       --muted:#667085;
-      --line:#d0d5dd;
       --blue:#2563eb;
       --blue-soft:#eff6ff;
       --green:#16a34a;
@@ -82,12 +82,12 @@
     .player-body{flex:1;padding:11px 8px 12px;display:flex;flex-direction:column}
     .instruction{text-align:center;font-size:clamp(14px,1.55vw,20px);font-weight:1000;line-height:1.3;min-height:46px;display:flex;align-items:center;justify-content:center;padding:0 4px}
     .subhint{text-align:center;color:var(--muted);font-size:11px;font-weight:800;min-height:18px;margin-bottom:3px}
+    .work-area{position:relative;flex:1;min-height:330px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start}
+    .hidden{display:none!important}
 
-    .work-area{position:relative;flex:1;min-height:320px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start}
-
-    /* 한 식 안에서 바뀌는 받아올림 화면 */
-    .carry-equation{
-      min-height:96px;
+    /* 원래 식: 처음부터 끝까지 같은 위치 */
+    .fixed-equation{
+      min-height:112px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -108,43 +108,19 @@
       font-size:clamp(28px,3.6vw,48px);
       font-weight:1000;
       flex:0 0 auto;
-      transition:opacity .28s ease,transform .28s ease,border-color .28s ease,background .28s ease;
+      transition:opacity .28s ease,border-color .28s ease,background .28s ease,color .28s ease;
+      position:relative;
     }
     .token.first{border-color:#93c5fd;background:var(--blue-soft)}
     .token.second{border-color:#cbd5e1}
-    .token.rest{border-color:var(--orange);background:var(--orange-soft);color:#9a3412}
-    .token.ten{border-color:var(--green);background:var(--green);color:#fff}
-    .token.vanish{opacity:0;transform:scale(.62)}
+    .token.trace{
+      opacity:.22;
+      border-style:dashed;
+      background:#f8fafc;
+      color:#64748b;
+    }
+    .token.paired{border-color:var(--green);background:var(--green-soft);color:#166534}
     .eq-symbol{font-size:clamp(27px,3.2vw,43px);font-weight:900;color:#475467;flex:0 0 auto}
-    .hidden{display:none!important}
-
-    .ten-group{
-      display:flex;
-      align-items:center;
-      gap:4px;
-      padding:5px;
-      border:3px solid var(--green);
-      border-radius:22px;
-      background:var(--green-soft);
-      position:relative;
-      flex:0 0 auto;
-      animation:pop .32s ease;
-    }
-    .ten-group::after{
-      content:"10 짝꿍";
-      position:absolute;
-      left:50%;
-      top:calc(100% + 4px);
-      transform:translateX(-50%);
-      color:#15803d;
-      font-size:10px;
-      font-weight:1000;
-      white-space:nowrap;
-    }
-    .ten-group .token{border:0;background:transparent;width:clamp(45px,4.8vw,68px);height:clamp(45px,4.8vw,68px);border-radius:14px}
-    .ten-group .token.first{background:#dbeafe}
-    .ten-group .token.complement{background:#dcfce7;color:#166534}
-    @keyframes pop{0%{transform:scale(.88);opacity:.25}100%{transform:scale(1);opacity:1}}
 
     .answer-input{
       width:clamp(58px,6.2vw,84px);
@@ -156,18 +132,22 @@
       outline:none;
       font-size:clamp(26px,3.4vw,44px);
       font-weight:1000;
+      transition:opacity .2s ease,border-color .2s ease,background .2s ease;
     }
+    .answer-input:disabled{opacity:.28;background:#f8fafc;cursor:not-allowed}
     .answer-input:focus,.split-input:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(37,99,235,.12)}
     .answer-input.good,.split-input.good{border-color:var(--green);background:var(--green-soft)}
     .answer-input.bad,.split-input.bad{border-color:var(--red);background:var(--red-soft)}
 
-    .split-area{position:relative;min-height:175px;margin-top:2px;z-index:4;transition:opacity .25s ease,transform .25s ease}
-    .split-area.hide-split{opacity:0;transform:translateY(-12px);pointer-events:none}
-    .split-title{text-align:center;color:#475467;font-size:12px;font-weight:900;margin-top:0}
-    .split-row{display:flex;justify-content:center;gap:clamp(28px,5vw,62px);margin-top:54px;position:relative;z-index:4}
+    /* 받아올림: 두 번째 수 바로 아래에서 가르기 */
+    .carry-work{position:relative;min-height:285px}
+    .split-area{position:relative;min-height:178px;margin-top:-4px;z-index:4}
+    .split-title{text-align:center;color:#475467;font-size:12px;font-weight:900;margin-top:0;min-height:18px}
+    .split-row{display:flex;justify-content:center;gap:clamp(28px,5vw,62px);margin-top:30px;position:relative;z-index:4}
     .split-item{text-align:center;min-width:76px}
     .split-label{font-size:10px;line-height:1.2;color:var(--muted);font-weight:900;min-height:26px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:5px}
-    .split-input{
+    .split-label.complement-label{font-size:12px;line-height:1.15;color:#15803d;font-weight:1000;min-height:auto;background:var(--green-soft);border:2px solid #86efac;border-radius:10px;padding:5px 8px;margin:0 auto 7px;box-shadow:0 2px 0 rgba(22,163,74,.12);white-space:nowrap}
+    .split-input,.split-value{
       width:clamp(56px,5.8vw,76px);
       height:clamp(56px,5.8vw,76px);
       border:3px solid #94a3b8;
@@ -178,10 +158,14 @@
       font-size:clamp(25px,3vw,39px);
       font-weight:1000;
     }
+    .split-value{display:grid;place-items:center;margin:0 auto}
+    .split-value.complement{border-color:var(--green);background:var(--green-soft);color:#166534}
+    .split-value.rest{border-color:var(--orange);background:var(--orange-soft);color:#9a3412}
     .split-svg{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;overflow:visible}
+    .pair-caption{position:absolute;z-index:6;color:#15803d;font-size:10px;font-weight:1000;background:#fff;padding:2px 5px;border-radius:8px;white-space:nowrap}
 
-    /* 세 수에서 10 만들기 */
-    .pair-line{min-height:110px;display:flex;align-items:center;justify-content:center;gap:clamp(5px,1vw,12px);position:relative;z-index:4;margin-top:12px}
+    /* 세 수에서 10 만들기: 원래 식 위치 유지 */
+    .pair-fixed{min-height:240px;position:relative}
     .pair-num{
       width:clamp(54px,5.9vw,78px);
       height:clamp(54px,5.9vw,78px);
@@ -193,10 +177,12 @@
       cursor:pointer;
       display:grid;
       place-items:center;
+      transition:border-color .2s ease,background .2s ease,color .2s ease;
+      flex:0 0 auto;
     }
     .pair-num.selected{border-color:var(--blue);background:var(--blue-soft);color:#1d4ed8}
     .pair-num.paired{border-color:var(--green);background:var(--green-soft);color:#166534}
-    .pair-final{min-height:110px;display:flex;align-items:center;justify-content:center;gap:8px;animation:pop .28s ease}
+    .pair-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible}
 
     .action-row{min-height:48px;display:flex;justify-content:center;align-items:center;margin-top:auto;padding-top:4px}
     .action-btn{border:0;border-radius:12px;padding:10px 14px;background:var(--blue);color:#fff;font-size:14px;font-weight:1000;cursor:pointer;box-shadow:0 4px 0 #1d4ed8;min-width:112px}
@@ -214,18 +200,19 @@
     .finish-text{font-size:13px;color:var(--muted);font-weight:800;line-height:1.5}
     .again-one{margin-top:14px;border:0;border-radius:12px;padding:10px 16px;background:var(--green);color:#fff;font-weight:1000;cursor:pointer}
 
-    /* 4~5인 화면에서는 글씨와 간격을 조금 더 압축 */
+    /* 4~5인 화면 압축 */
     .game-board[data-count="4"] .player-body,
     .game-board[data-count="5"] .player-body{padding-left:5px;padding-right:5px}
     .game-board[data-count="5"] .instruction{font-size:14px}
     .game-board[data-count="5"] .subhint{font-size:10px}
-    .game-board[data-count="5"] .carry-equation{gap:3px}
-    .game-board[data-count="5"] .token{width:52px;height:52px;font-size:29px;border-radius:14px}
-    .game-board[data-count="5"] .ten-group .token{width:42px;height:42px;font-size:26px}
-    .game-board[data-count="5"] .eq-symbol{font-size:27px}
-    .game-board[data-count="5"] .answer-input{width:55px;height:52px;font-size:28px}
-    .game-board[data-count="5"] .split-input{width:54px;height:54px;font-size:27px}
-    .game-board[data-count="5"] .split-row{gap:22px}
+    .game-board[data-count="5"] .fixed-equation{gap:3px}
+    .game-board[data-count="5"] .token,
+    .game-board[data-count="5"] .pair-num{width:50px;height:50px;font-size:28px;border-radius:14px}
+    .game-board[data-count="5"] .eq-symbol{font-size:26px}
+    .game-board[data-count="5"] .answer-input{width:52px;height:50px;font-size:27px}
+    .game-board[data-count="5"] .split-input,
+    .game-board[data-count="5"] .split-value{width:52px;height:52px;font-size:26px}
+    .game-board[data-count="5"] .split-row{gap:20px}
 
     @media (max-width:1200px){
       .game-board[data-count="4"],.game-board[data-count="5"]{
@@ -260,14 +247,13 @@
       .game-board{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;gap:7px;padding-bottom:8px}
       .player-panel{flex:0 0 calc(100vw - 20px)!important;min-height:calc(100vh - 195px);scroll-snap-align:center;border-radius:15px}
       .mobile-tip{display:block!important}
-      .work-area{min-height:315px}
+      .work-area{min-height:330px}
       .instruction{font-size:16px;min-height:42px}
-      .carry-equation{min-height:88px}
-      .token{width:62px;height:62px;font-size:34px}
-      .ten-group .token{width:51px;height:51px;font-size:31px}
-      .answer-input{width:64px;height:62px;font-size:33px}
-      .split-input{width:62px;height:62px;font-size:31px}
-      .pair-num{width:62px;height:62px;font-size:34px}
+      .fixed-equation{min-height:98px}
+      .token,.pair-num{width:60px;height:60px;font-size:33px}
+      .answer-input{width:62px;height:60px;font-size:32px}
+      .split-input,.split-value{width:60px;height:60px;font-size:30px}
+      .split-row{margin-top:30px}
     }
   </style>
 </head>
@@ -276,7 +262,7 @@
     <header class="topbar">
       <div class="brand">
         <h1>10의 짝꿍수 덧셈</h1>
-        <p>10을 먼저 만들고 남은 수를 더해요.</p>
+        <p>원래 식의 숫자 위치를 그대로 두고 계산해요.</p>
       </div>
 
       <div class="settings">
@@ -320,7 +306,7 @@
 
   <script>
     (() => {
-      const $ = (id) => document.getElementById(id);
+      const $ = id => document.getElementById(id);
       const rand = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
       const shuffle = arr => {
         const a=[...arr];
@@ -331,12 +317,12 @@
         return a;
       };
 
-      let playerCount = 1;
-      let goal = 10;
-      let mode = 'pair';
-      let games = [];
+      let playerCount=1;
+      let goal=10;
+      let mode='pair';
+      let games=[];
 
-      let audioCtx = null;
+      let audioCtx=null;
       function tone(freq,duration=.1,type='sine',delay=0,gain=.035){
         try{
           audioCtx ??= new (window.AudioContext||window.webkitAudioContext)();
@@ -360,14 +346,9 @@
         if(playerCount===3) tip.classList.add('show-three');
       }
 
-      $('playerSelect').addEventListener('change',e=>{
-        playerCount=Number(e.target.value);
-        updateMobileTip();
-      });
-      $('goalSelect').addEventListener('change',e=>{
-        goal=Number(e.target.value);
-      });
-      $('modeSelect').addEventListener('change',e=>{ mode=e.target.value; });
+      $('playerSelect').addEventListener('change',e=>{playerCount=Number(e.target.value);updateMobileTip()});
+      $('goalSelect').addEventListener('change',e=>{goal=Number(e.target.value)});
+      $('modeSelect').addEventListener('change',e=>{mode=e.target.value});
       $('startBtn').addEventListener('click',startAll);
       $('resetAllBtn').addEventListener('click',startAll);
 
@@ -377,7 +358,6 @@
           this.mode=mode;
           this.goal=goal;
           this.solved=0;
-          this.questionNo=1;
           this.locked=false;
           this.phase='start';
           this.q=null;
@@ -409,7 +389,7 @@
           return panel;
         }
 
-        el(role){ return this.panel.querySelector(`[data-role="${role}"]`); }
+        el(role){return this.panel.querySelector(`[data-role="${role}"]`)}
 
         setMessage(text='',type=''){
           const m=this.el('message');
@@ -417,15 +397,8 @@
           m.className='message'+(type?' '+type:'');
         }
 
-        clearTimers(){
-          this.timers.forEach(clearTimeout);
-          this.timers=[];
-        }
-
-        later(fn,ms){
-          const id=setTimeout(fn,ms);
-          this.timers.push(id);
-        }
+        clearTimers(){this.timers.forEach(clearTimeout);this.timers=[]}
+        later(fn,ms){const id=setTimeout(fn,ms);this.timers.push(id)}
 
         updateProgress(){
           this.el('count').textContent=`${this.solved} / ${this.goal}`;
@@ -444,6 +417,7 @@
           else this.makePair();
         }
 
+        /* ---------- 받아올림 ---------- */
         makeCarry(){
           const first=rand(5,9);
           const complement=10-first;
@@ -452,62 +426,93 @@
           this.q={first,complement,second,rest,answer:first+second};
 
           this.el('instruction').innerHTML=`문제 ${this.solved+1} · <strong>${first} + ${second}</strong>`;
-          this.el('subhint').textContent='두 번째 수를 갈라 10을 먼저 만들어요.';
+          this.el('subhint').textContent='두 번째 수를 가르되, 원래 식의 자리는 그대로 두어요.';
           this.el('work').innerHTML=`
-            <div class="carry-equation" data-role="carryEq">
-              <div class="token first" data-role="firstToken">${first}</div>
-              <div class="eq-symbol">+</div>
-              <div class="token second" data-role="secondToken">${second}</div>
-            </div>
-            <div class="split-area" data-role="splitArea">
-              <svg class="split-svg" data-role="splitSvg" aria-hidden="true"></svg>
-              <div class="split-title">${second}를 두 수로 가르세요.</div>
-              <div class="split-row">
-                <div class="split-item">
-                  <div class="split-label">${first}의 10짝꿍수</div>
-                  <input class="split-input" data-role="splitA" inputmode="numeric" pattern="[0-9]*" aria-label="${first}의 10짝꿍수">
+            <div class="carry-work" data-role="carryWork">
+              <div class="fixed-equation" data-role="carryEq">
+                <div class="token first" data-role="firstToken">${first}</div>
+                <div class="eq-symbol">+</div>
+                <div class="token second" data-role="secondToken">${second}</div>
+                <div class="eq-symbol">=</div>
+                <input class="answer-input" data-role="finalAnswer" inputmode="numeric" pattern="[0-9]*" aria-label="최종 답" disabled>
+              </div>
+
+              <div class="split-area" data-role="splitArea">
+                <svg class="split-svg" data-role="splitSvg" aria-hidden="true"></svg>
+                <div class="split-title">${second}를 두 수로 가르세요.</div>
+                <div class="split-row">
+                  <div class="split-item">
+                    <div class="split-label complement-label">${first}의 10짝꿍수</div>
+                    <input class="split-input" data-role="splitA" inputmode="numeric" pattern="[0-9]*" aria-label="${first}의 10짝꿍수">
+                    <div class="split-value complement hidden" data-role="splitAValue"></div>
+                  </div>
+                  <div class="split-item">
+                    <div class="split-label">남는 수</div>
+                    <input class="split-input" data-role="splitB" inputmode="numeric" pattern="[0-9]*" aria-label="남는 수">
+                    <div class="split-value rest hidden" data-role="splitBValue"></div>
+                  </div>
                 </div>
-                <div class="split-item">
-                  <div class="split-label">남는 수</div>
-                  <input class="split-input" data-role="splitB" inputmode="numeric" pattern="[0-9]*" aria-label="남는 수">
-                </div>
+                <div class="pair-caption hidden" data-role="pairCaption">10 짝꿍</div>
               </div>
             </div>`;
 
           this.el('actions').innerHTML=`<button class="action-btn" data-role="checkSplit">가르기 확인</button>`;
-          const a=this.el('work').querySelector('[data-role="splitA"]');
-          const b=this.el('work').querySelector('[data-role="splitB"]');
+          const work=this.el('work');
+          const a=work.querySelector('[data-role="splitA"]');
+          const b=work.querySelector('[data-role="splitB"]');
+          work.querySelector('[data-role="finalAnswer"]').addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
           this.el('actions').querySelector('[data-role="checkSplit"]').addEventListener('click',()=>this.checkSplit());
           a.addEventListener('keydown',e=>{if(e.key==='Enter')b.focus()});
           b.addEventListener('keydown',e=>{if(e.key==='Enter')this.checkSplit()});
-          requestAnimationFrame(()=>this.drawSplitLines());
+          requestAnimationFrame(()=>this.drawCarryGuide());
         }
 
-        drawSplitLines(){
-          if(this.mode!=='carry'||this.phase!=='start')return;
+        drawCarryGuide(){
+          if(this.mode!=='carry')return;
           const work=this.el('work');
+          const area=work.querySelector('[data-role="splitArea"]');
           const svg=work.querySelector('[data-role="splitSvg"]');
           const second=work.querySelector('[data-role="secondToken"]');
-          const a=work.querySelector('[data-role="splitA"]');
-          const b=work.querySelector('[data-role="splitB"]');
-          if(!svg||!second||!a||!b)return;
-          const wr=work.getBoundingClientRect();
+          const first=work.querySelector('[data-role="firstToken"]');
+          const aRef=work.querySelector(this.phase==='answer'?'[data-role="splitAValue"]':'[data-role="splitA"]');
+          const bRef=work.querySelector(this.phase==='answer'?'[data-role="splitBValue"]':'[data-role="splitB"]');
+          if(!area||!svg||!second||!first||!aRef||!bRef)return;
+
+          const ar=area.getBoundingClientRect();
           const sr=second.getBoundingClientRect();
-          const ar=a.getBoundingClientRect();
-          const br=b.getBoundingClientRect();
-          if(!wr.width||!sr.width||!ar.width)return;
-          const sx=sr.left-wr.left+sr.width/2;
-          const sy=sr.bottom-wr.top+3;
-          const ax=ar.left-wr.left+ar.width/2;
-          const ay=ar.top-wr.top-7;
-          const bx=br.left-wr.left+br.width/2;
-          const by=br.top-wr.top-7;
-          const mid=sy+24;
-          svg.setAttribute('viewBox',`0 0 ${wr.width} ${wr.height}`);
-          svg.innerHTML=`
+          const fr=first.getBoundingClientRect();
+          const rrA=aRef.getBoundingClientRect();
+          const rrB=bRef.getBoundingClientRect();
+          if(!ar.width||!rrA.width)return;
+
+          const sx=sr.left-ar.left+sr.width/2;
+          const sy=sr.bottom-ar.top+2;
+          const ax=rrA.left-ar.left+rrA.width/2;
+          const ay=rrA.top-ar.top-7;
+          const bx=rrB.left-ar.left+rrB.width/2;
+          const by=rrB.top-ar.top-7;
+          const mid=sy+14;
+
+          let html=`
             <path d="M ${sx} ${sy} L ${sx} ${mid}" fill="none" stroke="#64748b" stroke-width="3.5" stroke-linecap="round"/>
-            <path d="M ${sx} ${mid} Q ${sx-4} ${mid+24} ${ax} ${ay}" fill="none" stroke="#64748b" stroke-width="3.5" stroke-linecap="round"/>
-            <path d="M ${sx} ${mid} Q ${sx+4} ${mid+24} ${bx} ${by}" fill="none" stroke="#64748b" stroke-width="3.5" stroke-linecap="round"/>`;
+            <path d="M ${sx} ${mid} Q ${sx-4} ${mid+14} ${ax} ${ay}" fill="none" stroke="#64748b" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M ${sx} ${mid} Q ${sx+4} ${mid+14} ${bx} ${by}" fill="none" stroke="#64748b" stroke-width="3.5" stroke-linecap="round"/>`;
+
+          if(this.phase==='answer'){
+            const fx=fr.left-ar.left+fr.width/2;
+            const fy=fr.bottom-ar.top+2;
+            const greenY=Math.max(fy+18, ay-20);
+            html+=`
+              <path d="M ${fx} ${fy} Q ${fx} ${greenY} ${ax} ${ay-3}" fill="none" stroke="#16a34a" stroke-width="4.5" stroke-linecap="round"/>
+            `;
+            const caption=work.querySelector('[data-role="pairCaption"]');
+            caption.classList.remove('hidden');
+            caption.style.left=`${Math.max(4,(fx+ax)/2-28)}px`;
+            caption.style.top=`${Math.max(5,greenY-18)}px`;
+          }
+
+          svg.setAttribute('viewBox',`0 0 ${ar.width} ${ar.height}`);
+          svg.innerHTML=html;
         }
 
         checkSplit(){
@@ -524,58 +529,153 @@
           const a=Number(aRaw), b=Number(bRaw);
           if(a===this.q.complement && b===this.q.rest && a+b===this.q.second){
             this.locked=true;
-            aEl.classList.add('good');
-            bEl.classList.add('good');
+            aEl.classList.add('good');bEl.classList.add('good');
             soundGood();
-            this.showInlineSplit();
+            this.showSplitResult();
           }else{
             aEl.classList.add('bad');bEl.classList.add('bad');
             this.failAndRestart(`${this.q.first}의 10짝꿍수를 다시 생각해 보세요.`);
           }
         }
 
-        showInlineSplit(){
+        showSplitResult(){
           this.phase='answer';
           const work=this.el('work');
-          const eq=work.querySelector('[data-role="carryEq"]');
-          const splitArea=work.querySelector('[data-role="splitArea"]');
           const second=work.querySelector('[data-role="secondToken"]');
+          const aInput=work.querySelector('[data-role="splitA"]');
+          const bInput=work.querySelector('[data-role="splitB"]');
+          const aValue=work.querySelector('[data-role="splitAValue"]');
+          const bValue=work.querySelector('[data-role="splitBValue"]');
+          const answer=work.querySelector('[data-role="finalAnswer"]');
 
-          second.classList.add('vanish');
-          splitArea.classList.add('hide-split');
-          this.setMessage(`${this.q.second}가 ${this.q.complement}와 ${this.q.rest}(으)로 갈라졌어요.`, 'good');
-          this.el('actions').innerHTML='';
+          /* 원래 두 번째 수는 지우지 않고 '흔적'만 남긴다. */
+          second.classList.add('trace');
 
-          this.later(()=>{
-            eq.innerHTML=`
-              <div class="ten-group" aria-label="10이 되는 짝꿍수 ${this.q.first}와 ${this.q.complement}">
-                <div class="token first">${this.q.first}</div>
-                <div class="token complement">${this.q.complement}</div>
-              </div>
-              <div class="eq-symbol">+</div>
-              <div class="token rest">${this.q.rest}</div>
-              <div class="eq-symbol">=</div>
-              <input class="answer-input" data-role="finalAnswer" inputmode="numeric" pattern="[0-9]*" aria-label="최종 답">`;
-            splitArea.classList.add('hidden');
-            this.el('actions').innerHTML=`<button class="action-btn" data-role="checkAnswer">정답 확인</button>`;
-            const ans=work.querySelector('[data-role="finalAnswer"]');
-            this.el('actions').querySelector('[data-role="checkAnswer"]').addEventListener('click',()=>this.checkFinal());
-            ans.addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
-            this.setMessage(`${this.q.first}와 ${this.q.complement}는 10의 짝꿍수예요. 남은 ${this.q.rest}을 더하세요.`, 'info');
-            this.locked=false;
-            this.later(()=>ans.focus(),80);
-          },220);
+          aValue.textContent=this.q.complement;
+          bValue.textContent=this.q.rest;
+          aInput.classList.add('hidden');
+          bInput.classList.add('hidden');
+          aValue.classList.remove('hidden');
+          bValue.classList.remove('hidden');
+
+          answer.disabled=false;
+          this.el('actions').innerHTML=`<button class="action-btn" data-role="checkAnswer">정답 확인</button>`;
+          this.el('actions').querySelector('[data-role="checkAnswer"]').addEventListener('click',()=>this.checkFinal());
+          this.setMessage(`${this.q.second}는 흔적만 남기고, ${this.q.complement}와 ${this.q.rest}(으)로 갈랐어요. ${this.q.first}와 ${this.q.complement}가 10의 짝꿍이에요.`, 'good');
+          this.locked=false;
+          requestAnimationFrame(()=>this.drawCarryGuide());
+          this.later(()=>answer.focus(),80);
         }
 
+        /* ---------- 세 수에서 10 만들기 ---------- */
+        makePair(){
+          let a,b,c;
+          do{
+            a=rand(1,9);b=10-a;c=rand(1,9);
+          }while(c===a||c===b);
+          const values=shuffle([a,b,c]);
+          this.q={values,answer:values.reduce((s,v)=>s+v,0)};
+
+          this.el('instruction').innerHTML=`문제 ${this.solved+1} · <strong>10이 되는 두 수를 찾으세요.</strong>`;
+          this.el('subhint').textContent='숫자의 자리는 바꾸지 않고, 10이 되는 두 수만 표시해요.';
+
+          const parts=[];
+          values.forEach((v,i)=>{
+            parts.push(`<button class="pair-num" data-role="pairNum" data-i="${i}">${v}</button>`);
+            if(i<2)parts.push(`<span class="eq-symbol">+</span>`);
+          });
+          parts.push(`<span class="eq-symbol">=</span>`);
+          parts.push(`<input class="answer-input" data-role="finalAnswer" inputmode="numeric" pattern="[0-9]*" aria-label="최종 답" disabled>`);
+
+          this.el('work').innerHTML=`
+            <div class="pair-fixed" data-role="pairFixed">
+              <svg class="pair-svg" data-role="pairSvg" aria-hidden="true"></svg>
+              <div class="fixed-equation" data-role="pairEq">${parts.join('')}</div>
+            </div>`;
+          this.el('actions').innerHTML='';
+
+          const work=this.el('work');
+          work.querySelectorAll('[data-role="pairNum"]').forEach(btn=>btn.addEventListener('click',()=>this.pickPair(Number(btn.dataset.i),btn)));
+          work.querySelector('[data-role="finalAnswer"]').addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
+        }
+
+        pickPair(i,btn){
+          if(this.locked||this.phase!=='start')return;
+          if(this.selected.includes(i)){
+            this.selected=this.selected.filter(x=>x!==i);
+            btn.classList.remove('selected');
+            return;
+          }
+          if(this.selected.length>=2)return;
+          this.selected.push(i);
+          btn.classList.add('selected');
+
+          if(this.selected.length===2){
+            const sum=this.selected.reduce((s,idx)=>s+this.q.values[idx],0);
+            if(sum===10){
+              this.locked=true;
+              soundGood();
+              const nums=this.el('work').querySelectorAll('[data-role="pairNum"]');
+              nums.forEach((el,idx)=>{
+                if(this.selected.includes(idx)){
+                  el.classList.remove('selected');
+                  el.classList.add('paired');
+                }
+              });
+              this.phase='answer';
+              const answer=this.el('work').querySelector('[data-role="finalAnswer"]');
+              answer.disabled=false;
+              this.el('actions').innerHTML=`<button class="action-btn" data-role="checkAnswer">정답 확인</button>`;
+              this.el('actions').querySelector('[data-role="checkAnswer"]').addEventListener('click',()=>this.checkFinal());
+              this.setMessage('좋아요! 원래 식은 그대로 두고, 10이 되는 두 수만 표시했어요.','good');
+              this.locked=false;
+              requestAnimationFrame(()=>this.drawPairBracket());
+              this.later(()=>answer.focus(),80);
+            }else{
+              this.failAndRestart('10이 되지 않아요. 처음 문제부터 다시 시작해요.');
+            }
+          }
+        }
+
+        drawPairBracket(){
+          if(this.mode!=='pair'||this.phase!=='answer'||this.selected.length!==2)return;
+          const work=this.el('work');
+          const wrap=work.querySelector('[data-role="pairFixed"]');
+          const svg=work.querySelector('[data-role="pairSvg"]');
+          const nums=[...work.querySelectorAll('[data-role="pairNum"]')];
+          const selectedEls=this.selected.map(i=>nums[i]);
+          if(!wrap||!svg||selectedEls.some(x=>!x))return;
+
+          const wr=wrap.getBoundingClientRect();
+          const r1=selectedEls[0].getBoundingClientRect();
+          const r2=selectedEls[1].getBoundingClientRect();
+          const p1={x:r1.left-wr.left+r1.width/2,y:r1.bottom-wr.top+4};
+          const p2={x:r2.left-wr.left+r2.width/2,y:r2.bottom-wr.top+4};
+          const low=Math.max(p1.y,p2.y)+34;
+          const center=(p1.x+p2.x)/2;
+
+          svg.setAttribute('viewBox',`0 0 ${wr.width} ${wr.height}`);
+          svg.innerHTML=`
+            <path d="M ${p1.x} ${p1.y} Q ${p1.x} ${low-12} ${center} ${low}" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/>
+            <path d="M ${p2.x} ${p2.y} Q ${p2.x} ${low-12} ${center} ${low}" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/>
+            <text x="${center}" y="${low+20}" text-anchor="middle" font-size="11" font-weight="900" fill="#15803d">10 짝꿍</text>`;
+        }
+
+        /* ---------- 최종 답 ---------- */
         checkFinal(){
           if(this.locked||this.phase!=='answer')return;
           const ans=this.el('work').querySelector('[data-role="finalAnswer"]');
+          if(!ans||ans.disabled)return;
           const raw=ans.value.trim();
           if(raw===''){
-            this.setMessage('답을 입력해 주세요.','info');ans.focus();return;
+            this.setMessage('답을 입력해 주세요.','info');
+            ans.focus();
+            return;
           }
           if(Number(raw)===this.q.answer){
-            this.locked=true;ans.classList.add('good');soundGood();
+            this.locked=true;
+            ans.classList.add('good');
+            soundGood();
             this.solved++;
             this.updateProgress();
             if(this.solved>=this.goal){
@@ -590,72 +690,6 @@
           }
         }
 
-        makePair(){
-          let a,b,c;
-          do{
-            a=rand(1,9);b=10-a;c=rand(1,9);
-          }while(c===a||c===b);
-          const values=shuffle([a,b,c]);
-          this.q={values,answer:values.reduce((s,v)=>s+v,0)};
-          this.el('instruction').innerHTML=`문제 ${this.solved+1} · <strong>10이 되는 두 수를 찾으세요.</strong>`;
-          this.el('subhint').textContent='10이 되는 두 수를 찾아 나란히 묶어요.';
-          const parts=[];
-          values.forEach((v,i)=>{
-            parts.push(`<button class="pair-num" data-role="pairNum" data-i="${i}">${v}</button>`);
-            if(i<2)parts.push(`<span class="eq-symbol">+</span>`);
-          });
-          this.el('work').innerHTML=`<div class="pair-line" data-role="pairLine">${parts.join('')}</div>`;
-          this.el('actions').innerHTML='';
-          this.el('work').querySelectorAll('[data-role="pairNum"]').forEach(btn=>btn.addEventListener('click',()=>this.pickPair(Number(btn.dataset.i),btn)));
-        }
-
-        pickPair(i,btn){
-          if(this.locked||this.phase!=='start')return;
-          if(this.selected.includes(i)){
-            this.selected=this.selected.filter(x=>x!==i);btn.classList.remove('selected');return;
-          }
-          if(this.selected.length>=2)return;
-          this.selected.push(i);btn.classList.add('selected');
-          if(this.selected.length===2){
-            const sum=this.selected.reduce((s,idx)=>s+this.q.values[idx],0);
-            if(sum===10){
-              this.locked=true;soundGood();
-              const restIndex=[0,1,2].find(x=>!this.selected.includes(x));
-              const rest=this.q.values[restIndex];
-              this.el('work').querySelectorAll('[data-role="pairNum"]').forEach((el,idx)=>{
-                if(this.selected.includes(idx)){el.classList.remove('selected');el.classList.add('paired')}
-              });
-              const pairValues=this.selected.map(idx=>this.q.values[idx]);
-              this.setMessage('좋아요! 10이 되는 두 수를 찾았어요.','good');
-              this.later(()=>this.showPairFinal(pairValues,rest),300);
-            }else{
-              this.failAndRestart('10이 되지 않아요. 처음 문제부터 다시 시작해요.');
-            }
-          }
-        }
-
-        showPairFinal(pairValues,rest){
-          this.phase='answer';
-          this.el('work').innerHTML=`
-            <div class="pair-final">
-              <div class="ten-group" aria-label="10이 되는 짝꿍수 ${pairValues[0]}와 ${pairValues[1]}">
-                <div class="token complement">${pairValues[0]}</div>
-                <div class="token complement">${pairValues[1]}</div>
-              </div>
-              <div class="eq-symbol">+</div>
-              <div class="token rest">${rest}</div>
-              <div class="eq-symbol">=</div>
-              <input class="answer-input" data-role="finalAnswer" inputmode="numeric" pattern="[0-9]*" aria-label="최종 답">
-            </div>`;
-          this.el('actions').innerHTML=`<button class="action-btn" data-role="checkAnswer">정답 확인</button>`;
-          const ans=this.el('work').querySelector('[data-role="finalAnswer"]');
-          this.el('actions').querySelector('[data-role="checkAnswer"]').addEventListener('click',()=>this.checkFinal());
-          ans.addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
-          this.locked=false;
-          this.setMessage(`${pairValues[0]}와 ${pairValues[1]}를 나란히 묶었어요. 남은 ${rest}을 더하세요.`,'info');
-          this.later(()=>ans.focus(),80);
-        }
-
         failAndRestart(text){
           if(this.phase==='failed')return;
           this.phase='failed';
@@ -666,7 +700,6 @@
           this.el('actions').querySelectorAll('button').forEach(b=>b.disabled=true);
           this.later(()=>{
             this.solved=0;
-            this.questionNo=1;
             this.panel.classList.remove('fail-flash');
             this.updateProgress();
             this.newQuestion();
@@ -689,9 +722,7 @@
             </div>`;
           this.el('actions').innerHTML='';
           this.setMessage('','');
-          this.el('work').querySelector('[data-role="againOne"]').addEventListener('click',()=>{
-            this.solved=0;this.newQuestion();
-          });
+          this.el('work').querySelector('[data-role="againOne"]').addEventListener('click',()=>{this.solved=0;this.newQuestion()});
           soundDone();
         }
       }
@@ -707,14 +738,15 @@
         board.dataset.count=String(playerCount);
         board.style.setProperty('--players',playerCount);
         updateMobileTip();
-        for(let i=0;i<playerCount;i++) games.push(new PlayerGame(i,mode,goal));
+        for(let i=0;i<playerCount;i++)games.push(new PlayerGame(i,mode,goal));
         soundStart();
-        if(window.innerWidth<650) board.scrollTo({left:0,behavior:'smooth'});
+        if(window.innerWidth<650)board.scrollTo({left:0,behavior:'smooth'});
       }
 
       window.addEventListener('resize',()=>{
         games.forEach(g=>{
-          if(g.mode==='carry'&&g.phase==='start') g.drawSplitLines();
+          if(g.mode==='carry')g.drawCarryGuide();
+          if(g.mode==='pair')g.drawPairBracket();
         });
       });
 
