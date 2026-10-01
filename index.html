@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#f6f8fc" />
-  <title>10의 짝꿍수 덧셈</title>
+  <title>10의 짝꿍수 덧셈 · 모바일</title>
   <style>
     :root{
       --bg:#f5f7fb;
@@ -26,7 +26,7 @@
     *{box-sizing:border-box}
     html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
     button,input,select{font:inherit}
-    button{touch-action:manipulation}
+    button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
     body{overscroll-behavior-y:contain}
 
     .app{width:100%;min-height:100vh;padding:10px}
@@ -46,7 +46,27 @@
     .reset-all-btn{background:#eef2f7;color:#344054}
     .start-btn:active{transform:translateY(2px);box-shadow:none}
 
-    .mobile-tip{display:none;text-align:center;font-size:12px;color:var(--muted);font-weight:800;margin:2px 0 8px}
+
+    .timer-display{
+      min-width:92px;min-height:44px;padding:7px 11px;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;gap:5px;
+      background:#0f172a;color:#fff;font-size:19px;font-weight:1000;
+      font-variant-numeric:tabular-nums;box-shadow:0 3px 0 #020617;
+    }
+    .timer-display::before{content:'⏱';font-size:16px}
+    .timer-display.warning{background:#b45309;box-shadow:0 3px 0 #78350f}
+    .timer-display.danger{background:#dc2626;box-shadow:0 3px 0 #991b1b;animation:timerPulse .75s ease-in-out infinite alternate}
+    @keyframes timerPulse{from{transform:scale(1)}to{transform:scale(1.04)}}
+
+    .countdown-screen{
+      min-height:calc(100vh - 145px);display:flex;align-items:center;justify-content:center;
+      background:#fff;border:2px solid #e2e8f0;border-radius:18px;box-shadow:var(--shadow);
+    }
+    .countdown-number{font-size:clamp(96px,30vw,170px);font-weight:1000;color:var(--blue);line-height:1}
+    .time-up-title{font-size:clamp(24px,7vw,34px);font-weight:1000;margin-top:6px}
+    .time-up-score{font-size:clamp(26px,8vw,40px);font-weight:1000;color:var(--blue);margin-top:12px}
+    .player-panel.time-up{border-color:#f59e0b;background:linear-gradient(#fff,#fffbeb)}
+
 
     .game-board{
       display:grid;
@@ -299,9 +319,9 @@
       .mode-select{max-width:190px}
       .setting-select{min-width:76px}
       .start-btn,.reset-all-btn{padding:9px 11px;font-size:13px}
+      .timer-display{min-width:84px;min-height:40px;font-size:17px;padding:6px 8px}
       .game-board{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;gap:7px;padding-bottom:8px}
       .player-panel{flex:0 0 calc(100vw - 20px)!important;min-height:calc(100vh - 195px);scroll-snap-align:center;border-radius:15px}
-      .mobile-tip{display:block!important}
       .work-area{min-height:330px}
       .instruction{font-size:16px;min-height:42px}
       .fixed-equation{min-height:98px}
@@ -319,8 +339,8 @@
   <main class="app">
     <header class="topbar">
       <div class="brand">
-        <h1>10의 짝꿍수 덧셈</h1>
-        <p>원래 식의 숫자 위치를 그대로 두고 계산해요.</p>
+        <h1>10의 짝꿍수 덧셈 · 모바일</h1>
+        <p>1인용 · 제한 시간 안에 목표 문제에 도전해요.</p>
       </div>
 
       <div class="settings">
@@ -332,16 +352,6 @@
           </select>
         </div>
 
-        <div class="setting-group">
-          <span class="setting-label">인원</span>
-          <select class="setting-select" id="playerSelect" aria-label="인원 선택">
-            <option value="1" selected>1명</option>
-            <option value="2">2명</option>
-            <option value="3">3명</option>
-            <option value="4">4명</option>
-            <option value="5">5명</option>
-          </select>
-        </div>
 
         <div class="setting-group">
           <span class="setting-label">목표</span>
@@ -353,12 +363,22 @@
           </select>
         </div>
 
+        <div class="setting-group">
+          <span class="setting-label">시간</span>
+          <select class="setting-select" id="timerSelect" aria-label="제한 시간 선택">
+            <option value="60" selected>1분</option>
+            <option value="120">2분</option>
+            <option value="180">3분</option>
+          </select>
+        </div>
+
+        <div class="timer-display" id="timerDisplay" aria-live="polite">01:00</div>
+
         <button class="start-btn" id="startBtn">시작</button>
-        <button class="reset-all-btn" id="resetAllBtn">전체 처음부터</button>
+        <button class="reset-all-btn" id="resetAllBtn">처음부터</button>
       </div>
     </header>
 
-    <div class="mobile-tip" id="mobileTip">여러 명일 때는 화면을 좌우로 밀어 각자 화면을 볼 수 있어요.</div>
     <section class="game-board" id="gameBoard" data-count="1" style="--players:1"></section>
   </main>
 
@@ -375,10 +395,15 @@
         return a;
       };
 
-      let playerCount=1;
+      const playerCount=1;
       let goal=10;
       let mode='pair';
+      let roundSeconds=60;
+      let timeRemaining=60;
       let games=[];
+      let countdownInterval=null;
+      let gameTimerInterval=null;
+      let roundRunning=false;
 
       let audioCtx=null;
       function tone(freq,duration=.1,type='sine',delay=0,gain=.035){
@@ -396,19 +421,130 @@
       const soundBad=()=>{tone(170,.12,'square',0,.02);tone(125,.16,'square',.12,.018)};
       const soundDone=()=>{[523,659,784,1047].forEach((f,i)=>tone(f,.13,'sine',i*.09,.035))};
       const soundStart=()=>{tone(440,.08,'sine',0,.03);tone(660,.1,'sine',.09,.03)};
+      const soundCount=()=>tone(520,.11,'sine',0,.04);
+      const soundTimeUp=()=>{tone(220,.18,'square',0,.025);tone(165,.28,'square',.2,.022)};
 
-      function updateMobileTip(){
-        const tip=$('mobileTip');
-        tip.className='mobile-tip';
-        if(playerCount>=4) tip.classList.add('show-crowded');
-        if(playerCount===3) tip.classList.add('show-three');
+      function formatTime(totalSeconds){
+        const sec=Math.max(0,Number(totalSeconds)||0);
+        const m=Math.floor(sec/60);
+        const s=sec%60;
+        return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
       }
 
-      $('playerSelect').addEventListener('change',e=>{playerCount=Number(e.target.value);updateMobileTip()});
+      function updateTimerDisplay(){
+        const display=$('timerDisplay');
+        if(!display)return;
+        display.textContent=formatTime(timeRemaining);
+        display.classList.toggle('danger',roundRunning && timeRemaining<=10);
+        display.classList.toggle('warning',roundRunning && timeRemaining>10 && timeRemaining<=30);
+      }
+
+      function setSettingsLocked(locked){
+        ['modeSelect','goalSelect','timerSelect'].forEach(id=>{
+          const el=$(id); if(el)el.disabled=locked;
+        });
+        const start=$('startBtn');
+        if(start){
+          start.disabled=locked;
+          start.textContent=locked?(countdownInterval?'준비 중':'진행 중'):'시작';
+        }
+      }
+
+      function stopRoundTimers(){
+        if(countdownInterval){clearInterval(countdownInterval);countdownInterval=null;}
+        if(gameTimerInterval){clearInterval(gameTimerInterval);gameTimerInterval=null;}
+      }
+
+      function clearGames(){
+        games.forEach(g=>g.clearTimers());
+        games=[];
+        $('gameBoard').innerHTML='';
+      }
+
+      function resetToBlank(){
+        stopRoundTimers();
+        roundRunning=false;
+        clearGames();
+        goal=Number($('goalSelect').value);
+        mode=$('modeSelect').value;
+        roundSeconds=Number($('timerSelect').value);
+        timeRemaining=roundSeconds;
+        const board=$('gameBoard');
+        board.dataset.count='1';
+        board.style.setProperty('--players',1);
+        setSettingsLocked(false);
+        updateTimerDisplay();
+      }
+
+      function renderCountdown(n){
+        $('gameBoard').innerHTML=`<div class="countdown-screen"><div class="countdown-number" aria-live="assertive">${n}</div></div>`;
+        soundCount();
+      }
+
+      function beginCountdown(){
+        if(roundRunning||countdownInterval)return;
+        goal=Number($('goalSelect').value);
+        mode=$('modeSelect').value;
+        roundSeconds=Number($('timerSelect').value);
+        timeRemaining=roundSeconds;
+        stopRoundTimers();
+        clearGames();
+        setSettingsLocked(true);
+        updateTimerDisplay();
+        let count=3;
+        renderCountdown(count);
+        countdownInterval=setInterval(()=>{
+          count--;
+          if(count>0) renderCountdown(count);
+          else{
+            clearInterval(countdownInterval);
+            countdownInterval=null;
+            startAll();
+          }
+        },1000);
+      }
+
+      function startGameClock(){
+        roundRunning=true;
+        timeRemaining=roundSeconds;
+        updateTimerDisplay();
+        gameTimerInterval=setInterval(()=>{
+          timeRemaining--;
+          updateTimerDisplay();
+          if(timeRemaining<=0){
+            clearInterval(gameTimerInterval);
+            gameTimerInterval=null;
+            endByTime();
+          }
+        },1000);
+      }
+
+      function endByTime(){
+        if(!roundRunning)return;
+        roundRunning=false;
+        timeRemaining=0;
+        updateTimerDisplay();
+        games.forEach(g=>g.timeUp());
+        soundTimeUp();
+        setSettingsLocked(false);
+      }
+
+      function finishRoundOnGoal(){
+        if(!roundRunning)return;
+        roundRunning=false;
+        if(gameTimerInterval){clearInterval(gameTimerInterval);gameTimerInterval=null;}
+        updateTimerDisplay();
+        setSettingsLocked(false);
+      }
+
       $('goalSelect').addEventListener('change',e=>{goal=Number(e.target.value)});
       $('modeSelect').addEventListener('change',e=>{mode=e.target.value});
-      $('startBtn').addEventListener('click',startAll);
-      $('resetAllBtn').addEventListener('click',startAll);
+      $('timerSelect').addEventListener('change',e=>{
+        roundSeconds=Number(e.target.value);
+        if(!roundRunning&&!countdownInterval){timeRemaining=roundSeconds;updateTimerDisplay();}
+      });
+      $('startBtn').addEventListener('click',beginCountdown);
+      $('resetAllBtn').addEventListener('click',resetToBlank);
 
       class PlayerGame{
         constructor(index,mode,goal){
@@ -416,6 +552,7 @@
           this.mode=mode;
           this.goal=goal;
           this.solved=0;
+          this.mistakes=0;
           this.locked=false;
           this.phase='start';
           this.q=null;
@@ -432,7 +569,7 @@
           panel.innerHTML=`
             <div class="player-head">
               <div class="player-head-row">
-                <div class="player-name">${this.index+1}번</div>
+                <div class="player-name">나의 도전</div>
                 <div class="problem-count"><span data-role="count">0 / ${this.goal}</span></div>
               </div>
               <div class="progress-track"><div class="progress-fill" data-role="progress"></div></div>
@@ -521,10 +658,14 @@
           }
           input.classList.remove('bad');
 
-          /* 가르기 칸은 한 자리이므로 첫 칸 입력 뒤 두 번째 칸으로 자동 이동 */
+          /* 가르기 첫 칸 입력 후 두 번째 칸으로 자동 이동하고,
+             두 번째 칸까지 입력되면 별도 확인 버튼 없이 자동 채점합니다. */
           if(input.dataset.role==='splitA' && input.value.length>=1){
             const next=this.el('work').querySelector('[data-role="splitB"]');
             if(next && !next.classList.contains('hidden'))this.setActiveInput(next);
+          }else if(input.dataset.role==='splitB' && /^\d$/.test(key) && input.value.length>=1){
+            const first=this.el('work').querySelector('[data-role="splitA"]');
+            if(first && first.value.trim()!=='')this.checkSplit();
           }
         }
 
@@ -548,7 +689,7 @@
           this.phase='start';
           this.selected=[];
           this.setActiveInput(null);
-          this.panel.classList.remove('done');
+          this.panel.classList.remove('done','time-up');
           this.updateProgress();
           this.setMessage('');
           if(this.mode==='carry') this.makeCarry();
@@ -564,7 +705,7 @@
           this.q={first,complement,second,rest,answer:first+second};
 
           this.el('instruction').innerHTML=`문제 ${this.solved+1} · <strong>${first} + ${second}</strong>`;
-          this.el('subhint').textContent='아래 숫자 키패드로 입력해요. 원래 식의 자리는 그대로 두어요.';
+          this.el('subhint').textContent='두 수를 입력하면 자동으로 확인돼요. 원래 식의 자리는 그대로 두어요.';
           this.el('work').innerHTML=`
             <div class="carry-work" data-role="carryWork">
               <div class="fixed-equation" data-role="carryEq">
@@ -594,7 +735,7 @@
               </div>
             </div>`;
 
-          this.el('actions').innerHTML=`<button class="action-btn" data-role="checkSplit">가르기 확인</button>`;
+          this.el('actions').innerHTML='';
           const work=this.el('work');
           const a=work.querySelector('[data-role="splitA"]');
           const b=work.querySelector('[data-role="splitB"]');
@@ -603,7 +744,6 @@
           this.bindNumericInput(b,1);
           this.bindNumericInput(finalAnswer,2);
           finalAnswer.addEventListener('keydown',e=>{if(e.key==='Enter')this.checkFinal()});
-          this.el('actions').querySelector('[data-role="checkSplit"]').addEventListener('click',()=>this.checkSplit());
           a.addEventListener('keydown',e=>{if(e.key==='Enter')b.focus()});
           b.addEventListener('keydown',e=>{if(e.key==='Enter')this.checkSplit()});
           requestAnimationFrame(()=>this.drawCarryGuide());
@@ -777,7 +917,7 @@
               requestAnimationFrame(()=>this.drawPairBracket());
               this.setActiveInput(answer);
             }else{
-              this.failAndRestart('10이 되지 않아요. 처음 문제부터 다시 시작해요.');
+              this.failAndRestart('10이 되지 않아요.');
             }
           }
         }
@@ -832,25 +972,90 @@
             }
           }else{
             ans.classList.add('bad');
-            this.failAndRestart('틀렸어요. 처음 문제부터 다시 시작해요.');
+            this.failAndRestart('답이 달라요.');
           }
         }
 
         failAndRestart(text){
-          if(this.phase==='failed')return;
+          if(this.phase==='failed'||this.phase==='done'||this.phase==='timeup')return;
+
+          this.mistakes++;
+          soundBad();
+          this.panel.classList.add('fail-flash');
+
+          /* 첫 번째 오답은 점수를 유지하고 같은 문제를 다시 풀어요. */
+          if(this.mistakes===1){
+            this.locked=true;
+            this.setMessage('한 번은 괜찮아요! 다시 해보세요. (오답 1 / 2)','bad');
+
+            this.later(()=>{
+              this.panel.classList.remove('fail-flash');
+              this.locked=false;
+              const work=this.el('work');
+
+              if(this.mode==='pair' && this.phase==='start'){
+                this.selected=[];
+                work.querySelectorAll('[data-role="pairNum"]').forEach(el=>el.classList.remove('selected','bad'));
+                this.setMessage('다시 10이 되는 두 수를 골라보세요.','info');
+                return;
+              }
+
+              if(this.mode==='carry' && this.phase==='start'){
+                const a=work.querySelector('[data-role="splitA"]');
+                const b=work.querySelector('[data-role="splitB"]');
+                [a,b].forEach(el=>{if(el){el.value='';el.classList.remove('bad');}});
+                this.setMessage('다시 두 수를 입력해보세요. 두 번째 수까지 넣으면 자동 확인돼요.','info');
+                if(a)this.setActiveInput(a);
+                return;
+              }
+
+              if(this.phase==='answer'){
+                const ans=work.querySelector('[data-role="finalAnswer"]');
+                if(ans){
+                  ans.value='';
+                  ans.classList.remove('bad');
+                  this.setActiveInput(ans);
+                }
+                this.setMessage('답을 다시 계산해보세요.','info');
+              }
+            },650);
+            return;
+          }
+
+          /* 두 번째 오답에서 점수를 0으로 되돌리고 새 문제로 넘어갑니다. */
           this.phase='failed';
           this.locked=true;
           this.setActiveInput(null);
-          soundBad();
-          this.panel.classList.add('fail-flash');
-          this.setMessage(text,'bad');
+          this.setMessage('두 번째 오답이에요. 점수가 0점으로 돌아갑니다.','bad');
           this.el('actions').querySelectorAll('button').forEach(b=>b.disabled=true);
+
           this.later(()=>{
             this.solved=0;
+            this.mistakes=0;
             this.panel.classList.remove('fail-flash');
             this.updateProgress();
             this.newQuestion();
           },1000);
+        }
+
+        timeUp(){
+          if(this.phase==='done'||this.phase==='timeup')return;
+          this.clearTimers();
+          this.locked=true;
+          this.setActiveInput(null);
+          this.phase='timeup';
+          this.panel.classList.add('time-up');
+          this.el('instruction').textContent='시간 종료!';
+          this.el('subhint').textContent='';
+          this.el('work').innerHTML=`
+            <div class="finish-view">
+              <div class="finish-emoji">⏰</div>
+              <div class="time-up-title">시간이 끝났어요!</div>
+              <div class="time-up-score">${this.solved} / ${this.goal}문제</div>
+            </div>`;
+          this.el('actions').innerHTML='';
+          this.setMessage('','');
+          this.updateProgress();
         }
 
         finish(){
@@ -864,31 +1069,24 @@
           this.el('work').innerHTML=`
             <div class="finish-view">
               <div class="finish-emoji">🎉</div>
-              <div class="finish-title">${this.index+1}번 완료!</div>
+              <div class="finish-title">목표 달성!</div>
               <div class="finish-text">${this.goal}문제를 모두 맞혔어요.<br>10을 만드는 방법을 잘 익혔어요.</div>
-              <button class="again-one" data-role="againOne">다시 하기</button>
             </div>`;
           this.el('actions').innerHTML='';
           this.setMessage('','');
-          this.el('work').querySelector('[data-role="againOne"]').addEventListener('click',()=>{this.solved=0;this.newQuestion()});
           soundDone();
+          finishRoundOnGoal();
         }
       }
 
       function startAll(){
-        mode=$('modeSelect').value;
-        playerCount=Number($('playerSelect').value);
-        goal=Number($('goalSelect').value);
-        games.forEach(g=>g.clearTimers());
-        games=[];
+        clearGames();
         const board=$('gameBoard');
-        board.innerHTML='';
-        board.dataset.count=String(playerCount);
-        board.style.setProperty('--players',playerCount);
-        updateMobileTip();
-        for(let i=0;i<playerCount;i++)games.push(new PlayerGame(i,mode,goal));
+        board.dataset.count='1';
+        board.style.setProperty('--players',1);
+        games.push(new PlayerGame(0,mode,goal));
         soundStart();
-        if(window.innerWidth<650)board.scrollTo({left:0,behavior:'smooth'});
+        startGameClock();
       }
 
       window.addEventListener('resize',()=>{
@@ -898,7 +1096,7 @@
         });
       });
 
-      startAll();
+      resetToBlank();
     })();
   </script>
 </body>
